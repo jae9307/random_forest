@@ -15,7 +15,6 @@ def read_file():
     file_name = "Abominable_Data_HW_LABELED_TRAINING_DATA__v772_2245.csv"
 
     csv_data = pd.read_csv(file_name)
-    # csv_data.drop(['ID', 'Art&Hist', ' Gifts', 'Poetry'], axis=1, inplace=True)
 
     return csv_data.values
 
@@ -61,16 +60,80 @@ def make_decision_stub(records, decision_stubs):
 
     decision_stubs.append(Decision_Stub(left_is_assam, random_threshold, random_attribute_number))
 
+# make the code for the classifier
+def make_classifier(decision_stubs):
+    classifer_program = f"""
+import os
+import re
+import numpy as np
+import argparse
+
+def read_file():
+    file_name = "Abominable_Data_HW_LABELED_TRAINING_DATA__v772_2245.csv"
+
+    csv_data = pd.read_csv(file_name)
+
+    return csv_data.values
+
+def classifier():
+    parser = argparse.ArgumentParser(prog='classifier', description='Classifies snow people as Assam or Bhuttan')
+    parser.add_argument('filename')
+    args = parser.parse_args()
+
+    records = read_file(args.filename)
+
+    classification_file = open("Abominable_Data_HW_LABELED_TRAINING_DATA__v772_2245.csv", "w")
+    classification_file.write("")
+    classification_file.close()
+    
+    assam_votes = 0
+    bhuttan_votes = 0
+    
+    """
+
+    main_string = """
+def main():
+    classifier()
+
+if __name__ == '__main__':
+    main()
+    """
+
+    classifer_program += "\n" + write_decision_conditionals(decision_stubs)
+
+    file = open("Our_Classifier_Program_jae9307_dsr5964_2245.py", "w")
+    file.write(classifer_program)
+    file.write("\n" + main_string)
+    file.close()
+
+def write_decision_conditionals(decision_stubs):
+    decisions_string = ""
+
+    # TODO: fix formatting
+    for stub in decision_stubs:
+        if_string = f"if record[{stub.attribute}] <= {stub.threshold}:\n"
+        if_vote_string = "    assam_votes += 1" if stub.left_is_assam_flag else "bhuttan_votes += 1\n"
+        else_string = f"else:\n"
+        else_vote_string = "    bhuttan_votes += 1" if stub.left_is_assam_flag else "assam_votes += 1\n"
+        decisions_string += if_string + if_vote_string + else_string + else_vote_string
+
+    return decisions_string
+
 def main():
     records = read_file()
 
+    threads = []
     decision_stubs = []
 
-    make_decision_stub(records, decision_stubs)
-    print(decision_stubs[0])
-    # for index in range(100):
-    #     thread1 = threading.Thread(target=make_decision_stub(records, decision_stubs), daemon=False)
-    #     thread1.start()
+    for index in range(100):
+        thread = threading.Thread(target=make_decision_stub(records, decision_stubs), daemon=False)
+        thread.start()
+        threads.append(thread)
+
+    for index in range(100):
+        threads[index].join()
+
+    make_classifier(decision_stubs)
 
 if __name__ == "__main__":
     main()
