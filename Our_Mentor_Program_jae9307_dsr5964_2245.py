@@ -80,7 +80,37 @@ def make_decision_stub(records, decision_stubs):
     left_data_bhuttan_count = sum(int(record[-1]) == 1 for record in left_data)
     left_data_assam_count = sum(int(record[-1]) == -1 for record in left_data)
     left_is_assam = left_data_assam_count > left_data_bhuttan_count
+    accuracy = calculate_accuracy(validation_records, random_attribute_number, random_threshold, left_is_assam)
+    # mistakes = 0
+    # for record in validation_records:
+    #     is_assam = False
+    #     if left_is_assam:
+    #         if record[random_attribute_number] <= random_threshold:
+    #             is_assam = True
+    #         else:
+    #             is_assam = False
+    #     else:
+    #         if record[random_attribute_number] <= random_threshold:
+    #             is_assam = False
+    #         else:
+    #             is_assam = True
+    #     if is_assam and record[7] == "Bhuttan":
+    #         mistakes += 1
+    #     if not is_assam and record[7] == "Assam":
+    #         mistakes += 1
+    # accuracy = (len(validation_records) - mistakes) / len(validation_records)
 
+    print("Accuracy ", accuracy)
+    # TODO: make sure classifier is at least 50% accurate
+    if accuracy < 0.5:
+        left_is_assam = not left_is_assam
+        # Recompute the accuracy after flipping the left is assam flag to see if there is improvement in the accuracy
+        accuracy = calculate_accuracy(validation_records, random_attribute_number, random_threshold, left_is_assam)
+
+    if accuracy >= 0.51:
+        decision_stubs.append(Decision_Stub(left_is_assam, random_threshold, random_attribute_number))
+
+def calculate_accuracy(validation_records, random_attribute_number, random_threshold, left_is_assam):
     mistakes = 0
     for record in validation_records:
         is_assam = False
@@ -99,12 +129,8 @@ def make_decision_stub(records, decision_stubs):
         if not is_assam and record[7] == "Assam":
             mistakes += 1
 
-    print("Mistakes ", mistakes)
-    accuracy = len(validation_records) - mistakes / len(validation_records)
-    print("Accuracy ", accuracy)
-    # TODO: make sure classifier is at least 50% accurate
-
-    decision_stubs.append(Decision_Stub(left_is_assam, random_threshold, random_attribute_number))
+    accuracy = (len(validation_records) - mistakes) / len(validation_records)
+    return accuracy
 
 # make the code for the classifier
 def make_classifier(decision_stubs):
@@ -162,8 +188,39 @@ def write_decision_conditionals(decision_stubs):
         else_string = f"        else:\n"
         else_vote_string = "            bhuttan_votes += 1\n" if stub.left_is_assam_flag else "            assam_votes += 1\n"
         decisions_string += if_string + if_vote_string + else_string + else_vote_string
-    print_majority_class_string = f"        print('Assam' if assam_votes > bhuttan_votes else 'Bhutan')\n"
+    print_majority_class_string = f"        print('Assam' if assam_votes > bhuttan_votes else 'Bhuttan')\n"
     return for_string + decisions_string + print_majority_class_string
+
+def compare_classifier_labels_to_training_labels():
+    classifier_file = open("classifier_labels.csv", "r")
+    training_file = open("Abominable_Data_HW_LABELED_TRAINING_DATA__v772_2245.csv", "r")
+    classifier_list = classifier_file.readlines()
+    training_list = training_file.readlines()
+
+    mistakes = 0
+    false_positives = 0
+    false_negatives = 0
+    true_positives = 0
+    true_negatives = 0
+    # Assam is the "positive" label in this case
+    for i in range(1, 2401):
+        training_label = training_list[i].split(",")[7].strip()
+        classifier_label = classifier_list[i].strip()
+        if classifier_label == "Assam" and training_label == "Assam":
+            true_positives += 1
+        elif classifier_label == "Assam" and training_label == "Bhuttan":
+            false_positives += 1
+        elif classifier_label == "Bhuttan" and training_label == "Assam":
+            false_negatives += 1
+        else:
+            true_negatives += 1
+
+    print(f"True positives: {true_positives}\n"
+          f"False positives: {false_positives}\n"
+          f"False negatives: {false_negatives}\n"
+          f"True negatives: {true_negatives}")
+
+    #accuracy = (2400 - mistakes) / 2400
 
 def main():
     records = read_file()
@@ -183,3 +240,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    compare_classifier_labels_to_training_labels()
