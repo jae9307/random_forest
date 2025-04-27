@@ -11,6 +11,7 @@ class Decision_Stub:
         self.threshold = threshold
         self.attribute = attribute
 
+# Reads a file and returns its data
 def read_file():
     file_name = "Abominable_Data_HW_LABELED_TRAINING_DATA__v772_2245.csv"
 
@@ -37,8 +38,10 @@ def find_threshold_index(index, drivers, threshold, current_best_index, attribut
         return find_threshold_index(math.ceil(drivers[index + 1:].__len__() / 2) - 1, drivers[index + 1:], threshold,
                                     index if index > current_best_index else current_best_index + index + 1, attribute)
 
+# Creates a decision stub of depth 1 by choosing a random attribute and threshold, and then noting which side of the
+# resulting split has more Assam and which has more Bhuttan
 def make_decision_stub(records, decision_stubs):
-    random_attribute_number = random.randrange(6)
+    random_attribute_number = random.randrange(7)
 
     bhutan_records = []
     assam_records = []
@@ -48,19 +51,16 @@ def make_decision_stub(records, decision_stubs):
         if record[7] == "Assam":
             assam_records.append(record)
 
-    # maybe grab the 2/3 records in a random order?
+    # Create a training set with 2/3 of the data and a validation set with 1/3 of the data, ensuring that both sets
+    # each have an equal number of Bhuttan and Assam records
     training_data_bhutan_len = math.floor(len(bhutan_records) * (2/3))
     training_data_assam_len = math.floor(len(assam_records) * (2/3))
-
     training_bhutan_records = [bhutan_records[i] for i in range(training_data_bhutan_len)]
     training_assam_records = [assam_records[i] for i in range(training_data_assam_len)]
-
     validation_bhutan_records = [bhutan_records[i] for i in range(training_data_bhutan_len, len(bhutan_records))]
     validation_assam_records = [assam_records[i] for i in range(training_data_assam_len, len(assam_records))]
-
     training_records = training_assam_records + training_bhutan_records
     validation_records = validation_assam_records + validation_bhutan_records
-    print("Val record length ", len(validation_records))
 
     sorted_records = sorted(training_records, key=lambda single_record: single_record[random_attribute_number])
     random_threshold = random.uniform(sorted_records[0][random_attribute_number],
@@ -69,7 +69,8 @@ def make_decision_stub(records, decision_stubs):
     threshold_index = find_threshold_index(math.ceil(records.__len__() / 2) - 1, sorted_records,
                                            random_threshold, -1, random_attribute_number)
 
-    # create the groups left and right of the threshold using the threshold_index
+    # gather the data left of the threshold using the threshold_index. since the data is balanced, we only need
+    # to look at one side of the split to know the distribution
     left_data = sorted_records[:threshold_index + 1]
     if random_attribute_number == 6:  # the attribute at index 6 is EarLobes, a binary value attribute
         # if the attribute is binary set the random threshold to 0
@@ -81,19 +82,21 @@ def make_decision_stub(records, decision_stubs):
     left_is_assam = left_data_assam_count > left_data_bhuttan_count
     accuracy = calculate_accuracy(validation_records, random_attribute_number, random_threshold, left_is_assam)
 
-    print("Accuracy ", accuracy)
-    if accuracy < 0.5:
+    if accuracy < 0.5: # flip the classification if less than 50% accurate
         left_is_assam = not left_is_assam
         # Recompute the accuracy after flipping the left is assam flag to see if there is improvement in the accuracy
         accuracy = calculate_accuracy(validation_records, random_attribute_number, random_threshold, left_is_assam)
 
+    # only keep decision stubs with at least 51% accuracy
     if accuracy >= 0.51:
         decision_stubs.append(Decision_Stub(left_is_assam, random_threshold, random_attribute_number))
 
+# Given a set of validation data and a decision stub (the random attribute number and threshold and a flag
+# signifying which side of the split is Assam or Bhuttan), calculate the accuracy of the decision stub
 def calculate_accuracy(validation_records, random_attribute_number, random_threshold, left_is_assam):
     mistakes = 0
     for record in validation_records:
-        is_assam = False
+        is_assam = False  # track whether stub classifies record as Assam or Bhuttan
         if left_is_assam:
             if record[random_attribute_number] <= random_threshold:
                 is_assam = True
@@ -104,6 +107,7 @@ def calculate_accuracy(validation_records, random_attribute_number, random_thres
                 is_assam = False
             else:
                 is_assam = True
+        # If classification doesn't equal label, a mistake was made
         if is_assam and record[7] == "Bhuttan":
             mistakes += 1
         if not is_assam and record[7] == "Assam":
@@ -156,6 +160,8 @@ if __name__ == '__main__':
     file.write("\n" + main_string)
     file.close()
 
+# Go through each decision stub and create a string for the if/else condition resulting from that stub.
+# Incorporate each string into a larger string and return it
 def write_decision_conditionals(decision_stubs):
     decisions_string = ""
 
@@ -171,6 +177,8 @@ def write_decision_conditionals(decision_stubs):
     print_majority_class_string = f"        print('Assam' if assam_votes > bhuttan_votes else 'Bhuttan')\n"
     return for_string + decisions_string + print_majority_class_string
 
+# Create a confusion matrix comparing the input data and a (manually created) file containing the output
+# of the classifier program
 def compare_classifier_labels_to_training_labels():
     classifier_file = open("classifier_labels.csv", "r")
     training_file = open("Abominable_Data_HW_LABELED_TRAINING_DATA__v772_2245.csv", "r")
@@ -202,6 +210,8 @@ def compare_classifier_labels_to_training_labels():
 
     #accuracy = (2400 - mistakes) / 2400
 
+# Read the input file and create 100 threads which each create a decision stub, create classifier file
+# using these stubs
 def main():
     records = read_file()
 
@@ -217,7 +227,7 @@ def main():
         threads[index].join()
 
     make_classifier(decision_stubs)
+    # compare_classifier_labels_to_training_labels()
 
 if __name__ == "__main__":
     main()
-    compare_classifier_labels_to_training_labels()
