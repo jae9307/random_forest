@@ -38,7 +38,6 @@ def find_threshold_index(index, drivers, threshold, current_best_index, attribut
                                     index if index > current_best_index else current_best_index + index + 1, attribute)
 
 def make_decision_stub(records, decision_stubs):
-    # TODO: change this to 7 once you figure out how to handle the binary attribute
     random_attribute_number = random.randrange(6)
 
     bhutan_records = []
@@ -81,27 +80,8 @@ def make_decision_stub(records, decision_stubs):
     left_data_assam_count = sum(int(record[-1]) == -1 for record in left_data)
     left_is_assam = left_data_assam_count > left_data_bhuttan_count
     accuracy = calculate_accuracy(validation_records, random_attribute_number, random_threshold, left_is_assam)
-    # mistakes = 0
-    # for record in validation_records:
-    #     is_assam = False
-    #     if left_is_assam:
-    #         if record[random_attribute_number] <= random_threshold:
-    #             is_assam = True
-    #         else:
-    #             is_assam = False
-    #     else:
-    #         if record[random_attribute_number] <= random_threshold:
-    #             is_assam = False
-    #         else:
-    #             is_assam = True
-    #     if is_assam and record[7] == "Bhuttan":
-    #         mistakes += 1
-    #     if not is_assam and record[7] == "Assam":
-    #         mistakes += 1
-    # accuracy = (len(validation_records) - mistakes) / len(validation_records)
 
     print("Accuracy ", accuracy)
-    # TODO: make sure classifier is at least 50% accurate
     if accuracy < 0.5:
         left_is_assam = not left_is_assam
         # Recompute the accuracy after flipping the left is assam flag to see if there is improvement in the accuracy
